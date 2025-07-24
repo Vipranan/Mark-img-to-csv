@@ -1,150 +1,65 @@
-"""
-Setup script for Marksheet AI Agent
-This script helps users set up the environment and dependencies
-"""
 import os
 import subprocess
 import sys
-from pathlib import Path
 
-def check_python_version():
-    """Check if Python version is compatible"""
-    if sys.version_info < (3, 8):
-        print("❌ Python 3.8 or higher is required!")
-        print(f"Current version: {sys.version}")
-        return False
-    else:
-        print(f"✅ Python version: {sys.version.split()[0]}")
-        return True
+def run_command(command, cwd=None):
+    result = subprocess.run(command, shell=True, cwd=cwd)
+    if result.returncode != 0:
+        print(f"❌ Command failed: {command}")
+        sys.exit(1)
 
-def install_requirements():
-    """Install required packages"""
-    print("\n📦 Installing required packages...")
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-        print("✅ All packages installed successfully!")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Error installing packages: {e}")
-        return False
+print("🚀 Starting Conda-Activated Project Setup...")
 
-def create_directories():
-    """Create necessary directories"""
-    print("\n📁 Creating directories...")
-    directories = ["output", "temp"]
-    
-    for directory in directories:
-        Path(directory).mkdir(exist_ok=True)
-        print(f"✅ Created directory: {directory}")
+# Step 1: Install Python Backend Dependencies
+print("📦 Installing Backend Python Dependencies into conda environment...")
+if not os.path.exists("backend/requirements.txt"):
+    os.makedirs("backend", exist_ok=True)
+    with open("backend/requirements.txt", "w") as f:
+        f.write("\n".join([
+            "fastapi",
+            "uvicorn",
+            "python-multipart",
+            "pytesseract",
+            "opencv-python",
+            "pillow",
+            "python-dotenv"
+        ]))
 
-def create_env_file():
-    """Create .env file if it doesn't exist"""
-    print("\n🔧 Setting up environment file...")
-    
-    if not os.path.exists('.env'):
-        # Copy from example
-        if os.path.exists('.env.example'):
-            with open('.env.example', 'r') as example_file:
-                content = example_file.read()
-            
-            with open('.env', 'w') as env_file:
-                env_file.write(content)
-            
-            print("✅ Created .env file from example")
-            print("⚠️  Please edit .env file and add your Perplexity API key")
-        else:
-            # Create basic .env file
-            with open('.env', 'w') as env_file:
-                env_file.write("PERPLEXITY_API_KEY=your_api_key_here\n")
-            
-            print("✅ Created .env file")
-            print("⚠️  Please edit .env file and add your Perplexity API key")
-    else:
-        print("✅ .env file already exists")
+run_command("pip install -r backend/requirements.txt")
 
-def validate_setup():
-    """Validate the setup"""
-    print("\n🔍 Validating setup...")
-    
-    # Check if all files exist
-    required_files = [
-        'app.py', 'marksheet_agent.py', 'config.py', 
-        'utils.py', 'requirements.txt', '.env'
-    ]
-    
-    missing_files = []
-    for file in required_files:
-        if not os.path.exists(file):
-            missing_files.append(file)
-    
-    if missing_files:
-        print(f"❌ Missing files: {', '.join(missing_files)}")
-        return False
-    else:
-        print("✅ All required files present")
-    
-    # Check if .env has API key
-    try:
-        with open('.env', 'r') as env_file:
-            content = env_file.read()
-            if 'your_api_key_here' in content:
-                print("⚠️  Please add your actual Perplexity API key to .env file")
-            else:
-                print("✅ API key configuration detected")
-    except:
-        print("❌ Error reading .env file")
-        return False
-    
-    return True
+# Step 2: Frontend Setup with Vite + Tailwind
+print("📂 Setting up Frontend (React + Tailwind)...")
+if not os.path.exists("frontend"):
+    os.makedirs("frontend")
 
-def print_instructions():
-    """Print final setup instructions"""
-    print("\n" + "="*50)
-    print("🎉 SETUP COMPLETE!")
-    print("="*50)
-    
-    print("\n📋 Next Steps:")
-    print("1. Get your Perplexity API key from: https://www.perplexity.ai/settings/api")
-    print("2. Edit the .env file and replace 'your_api_key_here' with your actual API key")
-    print("3. Run the application: streamlit run app.py")
-    
-    print("\n🚀 To start the application:")
-    print("   streamlit run app.py")
-    
-    print("\n📚 Project Structure:")
-    print("   ├── app.py              # Main Streamlit application")
-    print("   ├── marksheet_agent.py  # AI agent for marksheet processing")
-    print("   ├── config.py           # Configuration settings")
-    print("   ├── utils.py            # Utility functions")
-    print("   ├── requirements.txt    # Python dependencies")
-    print("   ├── .env                # Environment variables")
-    print("   └── output/             # Generated CSV files")
+if not os.path.exists("frontend/package.json"):
+    print("Creating Vite React App...")
+    run_command("npm create vite@latest frontend -- --template react")
 
-def main():
-    """Main setup function"""
-    print("🚀 Marksheet AI Agent Setup")
-    print("="*30)
-    
-    # Check Python version
-    if not check_python_version():
-        return
-    
-    # Install requirements
-    if not install_requirements():
-        print("❌ Setup failed during package installation")
-        return
-    
-    # Create directories
-    create_directories()
-    
-    # Create .env file
-    create_env_file()
-    
-    # Validate setup
-    if validate_setup():
-        print_instructions()
-    else:
-        print("❌ Setup validation failed")
+print("Installing Frontend Dependencies...")
+run_command("npm install", cwd="frontend")
+run_command("npm install -D tailwindcss postcss autoprefixer", cwd="frontend")
+run_command("npx tailwindcss init -p", cwd="frontend")
 
-if __name__ == "__main__":
-    main()
+# Update Tailwind Config (simplified)
+tailwind_config_path = "frontend/tailwind.config.js"
+if os.path.exists(tailwind_config_path):
+    with open(tailwind_config_path, "r") as file:
+        content = file.read()
+    content = content.replace("content: []", 'content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"]')
+    with open(tailwind_config_path, "w") as file:
+        file.write(content)
+
+# Step 3: Generate .env Template
+if not os.path.exists(".env"):
+    print("Creating .env template...")
+    with open(".env", "w") as env_file:
+        env_file.write("GOOGLE_CLIENT_ID=\nGOOGLE_CLIENT_SECRET=\n")
+
+# Step 4: Tesseract Reminder
+print("\n⚠️ Please ensure Tesseract OCR is installed and added to PATH.")
+print("Download link: https://github.com/UB-Mannheim/tesseract/wiki")
+
+print("\n🎉 Setup Complete! 🚀")
+print("To run backend: uvicorn backend.app.main:app --reload")
+print("To run frontend: cd frontend && npm run dev")
